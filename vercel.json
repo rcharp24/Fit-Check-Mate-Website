@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/analyze", "dest": "api/analyze.js" },
+    { "src": "/api/save-color", "dest": "api/save-color.js" },
+    { "src": "/api/saved-colors", "dest": "api/saved-colors.js" }
+  ]
+}
