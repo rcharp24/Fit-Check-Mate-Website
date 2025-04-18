@@ -11,6 +11,8 @@ function UploadPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const navigate = useNavigate();
+
   const handleFileChange = (event, setImage) => {
     const file = event.target.files[0];
     const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
@@ -25,12 +27,19 @@ function UploadPage() {
         setError("File size too large. Please upload an image smaller than 5MB.");
         return;
       }
-      setError(""); // Clear error if the file is valid
+      setError("");
       setImage(file);
     }
   };
 
-  const navigate = useNavigate();
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   const handleAnalyze = async (event) => {
     event.preventDefault();
@@ -42,21 +51,21 @@ function UploadPage() {
     }
 
     setLoading(true);
-    const formData = new FormData();
-    formData.append("topImage", topImage);
-    formData.append("bottomImage", bottomImage);
-    formData.append("shoeImage", shoeImage);
 
     try {
-      const response = await axios.post('https://fitcheckmate.vercel.app/api/analyze.js', formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      const topBase64 = await convertToBase64(topImage);
+      const bottomBase64 = await convertToBase64(bottomImage);
+      const shoeBase64 = await convertToBase64(shoeImage);
+
+      const response = await axios.post('/api/analyze', {
+        topImage: topBase64,
+        bottomImage: bottomBase64,
+        shoeImage: shoeBase64
       });
 
-      const matchedColors = response.data; // Extracted colors from backend
-
+      const matchedColors = response.data;
       setExtractedColors(matchedColors);
       navigate("/results", { state: { extractedColors: matchedColors } });
-
     } catch (error) {
       console.error("Analysis Error:", error);
       setError("Analysis failed. Please try again.");
@@ -80,9 +89,9 @@ function UploadPage() {
       </Row>
 
       <Container fluid className="vh-100 d-flex flex-column justify-content-center align-items-center">
-        <Card className="shadow-lg text-center mb-4" style={{ width: '30%', backgroundColor: 'rgba(10, 10, 40, 0.9)', color: 'white'}}>
+        <Card className="shadow-lg text-center mb-4" style={{ width: '30%', backgroundColor: 'rgba(10, 10, 40, 0.9)', color: 'white' }}>
           <h2 style={{ fontFamily: "'Dancing Script', cursive", fontSize: "3rem" }}>Upload Pictures</h2>
-        </Card> 
+        </Card>
 
         <Row className="w-100 justify-content-center">
           <Col md={6} lg={5}>
@@ -99,13 +108,27 @@ function UploadPage() {
                           <Card className="p-3" style={{ backgroundColor: "#1A1A40" }}>
                             <h3 style={{ color: "white" }}>Upload {category}</h3>
                             <label className="custom-file-upload">
-                              <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={(event) => handleFileChange(event, setImage)} />
+                              <input
+                                type="file"
+                                accept="image/png, image/jpeg, image/jpg"
+                                onChange={(event) => handleFileChange(event, setImage)}
+                              />
                               Choose file
                             </label>
                             {image && (
                               <>
-                                <img src={URL.createObjectURL(image)} alt={`${category} preview`} style={{ width: "100%", height: "auto", marginTop: "10px" }} />
-                                <Button variant="outline-danger" onClick={() => setImage(null)} className="mt-2">Remove</Button> 
+                                <img
+                                  src={URL.createObjectURL(image)}
+                                  alt={`${category} preview`}
+                                  style={{ width: "100%", height: "auto", marginTop: "10px" }}
+                                />
+                                <Button
+                                  variant="outline-danger"
+                                  onClick={() => setImage(null)}
+                                  className="mt-2"
+                                >
+                                  Remove
+                                </Button>
                               </>
                             )}
                           </Card>
@@ -114,7 +137,11 @@ function UploadPage() {
                     })}
                   </Row>
                   <div className="text-center mt-4">
-                    <Button type="submit" className="btn-warning" disabled={loading || !topImage || !bottomImage || !shoeImage}>
+                    <Button
+                      type="submit"
+                      className="btn-warning"
+                      disabled={loading || !topImage || !bottomImage || !shoeImage}
+                    >
                       {loading ? <Spinner animation="border" size="sm" /> : "Analyze"}
                     </Button>
                   </div>
