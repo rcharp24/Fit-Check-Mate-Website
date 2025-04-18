@@ -44,25 +44,25 @@ function UploadPage() {
   const handleAnalyze = async (event) => {
     event.preventDefault();
     setError("");
-
+  
     if (!topImage || !bottomImage || !shoeImage) {
       setError("Please upload images for all clothing items.");
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       const topBase64 = await convertToBase64(topImage);
       const bottomBase64 = await convertToBase64(bottomImage);
       const shoeBase64 = await convertToBase64(shoeImage);
-
+  
       const response = await axios.post('/api/analyze', {
         topImage: topBase64,
         bottomImage: bottomBase64,
-        shoeImage: shoeBase64
+        shoeImage: shoeBase64,
       });
-
+  
       const matchedColors = response.data;
       setExtractedColors(matchedColors);
       navigate("/results", { state: { extractedColors: matchedColors } });
@@ -73,6 +73,7 @@ function UploadPage() {
       setLoading(false);
     }
   };
+  
 
   return (
     <div>
