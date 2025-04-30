@@ -1,29 +1,31 @@
-import { Pool } from 'pg';
+import microCors from 'micro-cors';
+import { neon } from '@neondatabase/serverless';
+import dotenv from 'dotenv';
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+dotenv.config();
+const cors = microCors();
+const sql = neon(process.env.DATABASE_URL);
 
-export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const { color, hex } = req.body;
-
-    if (!color || !hex) {
-      return res.status(400).json({ error: 'Missing color or hex' });
-    }
-
-    try {
-      await pool.query(
-        'INSERT INTO saved_colors (color, hex) VALUES ($1, $2)',
-        [color, hex]
-      );
-      res.status(200).json({ message: 'Color saved successfully!' });
-    } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+export default cors(async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).end('Method Not Allowed');
   }
-}
+
+  try {
+    const { color, label } = req.body;
+
+    if (!color || !label) {
+      return res.status(400).json({ error: 'Missing color or label' });
+    }
+
+    await sql`
+      INSERT INTO saved_colors (label, hex)
+      VALUES (${label}, ${color})
+    `;
+
+    res.status(200).json({ message: 'Color saved!' });
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
