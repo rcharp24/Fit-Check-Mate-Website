@@ -1,114 +1,73 @@
-import React, { useState } from "react";
-import { Container, Row, Col, Card, Button, Toast, ToastContainer } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 function ResultsPage() {
   const location = useLocation();
-  const { extractedColors } = location.state || {}; // Get colors from state passed by UploadPage
-  console.log("Extracted colors:", extractedColors);
+  const [colors, setColors] = useState({ top: "N/A", bottom: "N/A", shoes: "N/A" });
 
-  const [showNotification, setShowNotification] = useState(false);
+  useEffect(() => {
+    console.log("Location State: ", location.state);
 
-  // Check if extractedColors is undefined or empty
-  if (!extractedColors) {
-    return <div>Loading...</div>; // Show loading state while waiting for data
-  }
+    if (location.state && location.state.extractedColors) {
+      const { top, bottom, shoes } = location.state.extractedColors;
 
-  // Function to save colors to the database
-  const handleSaveColors = async () => {
-    if (!extractedColors) {
-      alert("No colors to save!");
-      return (
-        <div className="text-center">
-          <h3>Loading Analysis Results...</h3>
-        </div>
-      );
+      // Log the received colors to the console
+      console.log("Extracted Colors:", { top, bottom, shoes });
+
+      // Set the colors in the state
+      setColors({ top, bottom, shoes });
     }
-
-    try {
-      const response = await fetch("https://localhost:5000/api/save-colors", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ extractedColors }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save colors");
-      }
-
-      setShowNotification(true); // Show success notification
-    } catch (error) {
-      console.error("Error saving colors:", error);
-    }
-  };
+  }, [location]);
 
   return (
-    <div className="overflow-auto">
-      {/* Toast Notification */}
-      <ToastContainer position="top-end" className="p-3">
-        <Toast
-          onClose={() => setShowNotification(false)}
-          show={showNotification}
-          bg="success"
-          autohide
-          delay={7000}
-        >
-          <Toast.Header style={{ backgroundColor: "rgba(20,20,60,0.9)" }}>
-            <strong className="me-auto text-white">Success!</strong>
-          </Toast.Header>
-          <Toast.Body style={{ backgroundColor: "white" }}>
-            All colors have been saved successfully! 🎨
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        textAlign: "center",
+        color: "white",
+        backgroundColor: "rgba(10, 10, 40, 0.9)",
+        padding: "20px",
+      }}
+    >
+      <h2 style={{ fontSize: "2rem", marginBottom: "20px" }}>Color Analysis Results</h2>
 
-      {/* Results Container */}
-      <Container fluid className="vh-100 d-flex flex-column justify-content-center align-items-center">
-        <Row className="w-100 justify-content-center">
-          <Col md={8} lg={6}>
-            <Card className="w-100 shadow-lg text-white" style={{ backgroundColor: "rgba(10, 10, 40, 0.9)" }}>
-              <Card.Body>
-                <h4 className="text-center mb-4">Analysis Results</h4>
-
-                <Row>
-                  {["top", "bottom", "shoes"].map((item) => (
-                    extractedColors[item] ? (
-                      <Col key={item} md={4}>
-                        <Card className="p-3 text-center">
-                          <div
-                            style={{
-                              backgroundColor: extractedColors[item], // <-- just use extractedColors[item]
-                              height: "50px",
-                              borderRadius: "5px",
-                              border: "1px solid #ccc",
-                            }}
-                          ></div>
-                          <p><strong>Extracted: </strong>{extractedColors[item]}</p>
-                        </Card>
-                      </Col>
-                    ) : (
-                      <Col key={item} md={4}>
-                        <Card className="p-3 text-center">
-                          <p>Data not available for {item}</p>
-                        </Card>
-                      </Col>
-                    )
-                  ))}
-                </Row>
-
-                <div className="text-center mt-4">
-                  <Button variant="outline-warning" style={{ marginRight: "10px" }} href="/upload">
-                    Go Back to Upload
-                  </Button>
-                  <Button variant="outline-warning" onClick={handleSaveColors}>
-                    Save Colors
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
+      {/* Display the colors in styled cards */}
+      <div style={{ display: "flex", gap: "20px" }}>
+        {Object.entries(colors).map(([key, value]) => (
+          <div
+            key={key}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "20px",
+              backgroundColor: "rgba(10, 10, 40, 0.9)",
+              borderRadius: "10px",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)",
+              minWidth: "150px",
+            }}
+          >
+            <h3 style={{ fontSize: "1.5rem", marginBottom: "10px" }}>
+              {key.charAt(0).toUpperCase() + key.slice(1)} Color
+            </h3>
+            <div
+              style={{
+                width: "50px",
+                height: "50px",
+                backgroundColor: value !== "N/A" ? value : "gray",
+                borderRadius: "5px",
+                marginBottom: "10px",
+                border: "2px solid white",
+              }}
+            />
+            <p style={{ fontSize: "1.2rem" }}>{value}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
