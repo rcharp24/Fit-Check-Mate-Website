@@ -1,40 +1,14 @@
-// utils/colorUtils.js
+const hexToRgb = (hex) => {
+  const c = hex.slice(1);
+  const rgb = parseInt(c, 16);
+  return { r: (rgb >> 16) & 0xff, g: (rgb >> 8) & 0xff, b: rgb & 0xff };
+};
 
-function hexToRgb(hex) {
-  hex = hex.replace('#', '');
-  const bigint = parseInt(hex, 16);
-  return {
-    r: (bigint >> 16) & 255,
-    g: (bigint >> 8) & 255,
-    b: bigint & 255,
-  };
-}
+const colorDistance = (rgb1, rgb2) => {
+  const rDiff = rgb1.r - rgb2.r;
+  const gDiff = rgb1.g - rgb2.g;
+  const bDiff = rgb1.b - rgb2.b;
+  return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
+};
 
-function colorDistance(c1, c2) {
-  return Math.sqrt(
-    Math.pow(c1.r - c2.r, 2) +
-    Math.pow(c1.g - c2.g, 2) +
-    Math.pow(c1.b - c2.b, 2)
-  );
-}
-
-function findClosestMatches(targetHex, palette, threshold = 100) {
-  const targetRgb = hexToRgb(targetHex);
-  const matches = palette.filter(hex => {
-    const rgb = hexToRgb(hex);
-    return colorDistance(targetRgb, rgb) <= threshold;
-  });
-
-  if (matches.length > 0) return { match: true, suggestions: matches };
-
-  const sorted = [...palette].sort((a, b) => {
-    return (
-      colorDistance(targetRgb, hexToRgb(a)) -
-      colorDistance(targetRgb, hexToRgb(b))
-    );
-  });
-
-  return { match: false, suggestions: sorted.slice(0, 3) };
-}
-
-module.exports = { findClosestMatches };
+module.exports = { hexToRgb, colorDistance };

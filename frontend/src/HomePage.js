@@ -21,7 +21,8 @@ const HomePage = () => {
       {/* Main Content */}
       <Container fluid className="home-page-container vh-100 d-flex flex-column justify-content-center align-items-center checkered-background overflow-auto">
         {/* Title Section */}
-        <Card className="shadow-lg text-center mb-4" style={{ width: '40%', backgroundColor: 'rgba(10, 10, 40, 0.9)', color: 'white' }}>
+        
+        <Card className="text-center mb-4" style={{ width: '40%', backgroundColor: 'rgba(10, 10, 40, 0.9)', color: 'white', background: 'linear-gradient(135deg, rgba(5,3,50,0.8), rgba(151,120,56,0.85))' }}>
             <Card.Body>
               <h1 className="main-title" style={{ fontFamily: "'Dancing Script', cursive", fontSize: "4rem" }}>Fit Check Mate</h1>
           

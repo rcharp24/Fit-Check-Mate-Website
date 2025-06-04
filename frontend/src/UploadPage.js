@@ -62,7 +62,7 @@ function UploadPage() {
   };
 
   return (
-    <div>
+    <div className="transparent-centered-container">
       <Row className="text-center pt-4">
         <nav>
           <div className="d-flex justify-content-center gap-3">
@@ -76,7 +76,7 @@ function UploadPage() {
       <Container fluid className="vh-100 d-flex flex-column justify-content-center align-items-center">
         <Row className="w-100 justify-content-center">
           <Col md={6} lg={5}>
-            <Card className="shadow-lg text-white" style={{ backgroundColor: "rgba(10, 10, 40, 0.9)" }}>
+            <Card className=" text-white" style={{ backgroundColor: "rgba(10, 10, 40, 0.9)" }}>
               <Card.Body>
                 {error && <Alert variant="danger">{error}</Alert>}
                 <form onSubmit={handleAnalyze}>

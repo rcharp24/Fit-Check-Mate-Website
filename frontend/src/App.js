@@ -12,7 +12,7 @@ import ResultPage from "./ResultPage";
 import AboutPage from "./AboutPage";
 import Logout from "./Logout";
 import NavBarComponent from "./NavBarComponent";
-import SavedColors from "./SavedColors";
+import SavedOutfit from "./SavedOutfit";
 import "./App.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -27,7 +27,7 @@ function App() {
   }, []);
 
   return (
-    <div className="checkered-background">
+    <div className="checkered-background transparent-centered-container">
       <Router>
         <Routes>
           {/* Main Page (no NavBarComponent) */}
@@ -47,7 +47,7 @@ function App() {
                   <Route path="/upload" element={<UploadPage />} />
                   <Route path="/results" element={<ResultPage />} />
                   <Route path="/about" element={<AboutPage />} />
-                  <Route path="/savedcolors" element={<SavedColors />} />
+                  <Route path="/savedoutfit" element={<SavedOutfit />} />
                 </Routes>
               </NavBarComponent>
             }

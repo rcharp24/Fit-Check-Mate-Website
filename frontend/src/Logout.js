@@ -20,7 +20,7 @@ const LogoutPage = () => {
   }, [navigate]);
 
   return (
-    <div className="vh-100 d-flex justify-content-center align-items-center bg-dark text-white">
+    <div className="vh-100 d-flex justify-content-center align-items-center bg-dark text-white transparent-centered-container">
       <h2>Logging out...</h2>
     </div>
   );

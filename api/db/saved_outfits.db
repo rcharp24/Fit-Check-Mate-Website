@@ -1,0 +1,10 @@
+CREATE TABLE saved_outfits (
+  id SERIAL PRIMARY KEY,
+  top_color TEXT,
+  bottom_color TEXT,
+  shoes_color TEXT,
+  gender TEXT,
+  season TEXT,
+  style TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
