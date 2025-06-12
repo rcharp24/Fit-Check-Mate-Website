@@ -4,8 +4,8 @@ import fcmlogo from './fcmlogo.jpg';
 
 const MainPage = () => {
   return (
-    <div className="transparent-centered-container">
-      <Container fluid className="vh-100 d-flex flex-column justify-content-center align-items-center overflow-auto">
+    <div className=" checkered-background">
+      <Container fluid className="vh-100 d-flex flex-column justify-content-center align-items-center overflow-auto transparent-centered-container">
         <Row className="d-flex justify-content-center align-items-center w-100">
           <Col className="text-center d-flex flex-column justify-content-center align-items-center">
             <img src={fcmlogo} alt="FitCheckMate Logo" style={{ width: '600px', marginBottom: '30px' }} />

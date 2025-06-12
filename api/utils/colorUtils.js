@@ -1,14 +1,24 @@
-const hexToRgb = (hex) => {
-  const c = hex.slice(1);
-  const rgb = parseInt(c, 16);
-  return { r: (rgb >> 16) & 0xff, g: (rgb >> 8) & 0xff, b: rgb & 0xff };
-};
+const pool = require("../db");
+const { hexToRgb, getDistance } = require("./colorMath"); // put RGB logic in colorMath.js
 
-const colorDistance = (rgb1, rgb2) => {
-  const rDiff = rgb1.r - rgb2.r;
-  const gDiff = rgb1.g - rgb2.g;
-  const bDiff = rgb1.b - rgb2.b;
-  return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
-};
+async function getClosestColorFromDB(extractedHex, threshold = 50) {
+  const extractedRgb = hexToRgb(extractedHex);
+  const { rows } = await pool.query("SELECT * FROM preset_colors");
 
-module.exports = { hexToRgb, colorDistance };
+  let closest = null;
+  let minDistance = Infinity;
+
+  for (const row of rows) {
+    const presetRgb = hexToRgb(row.hex);
+    const distance = getDistance(extractedRgb, presetRgb);
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      closest = row;
+    }
+  }
+
+  return minDistance <= threshold ? closest : null;
+}
+
+module.exports = { getClosestColorFromDB };

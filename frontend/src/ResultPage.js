@@ -1,46 +1,69 @@
-import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { Button, Row, Modal, Form, Spinner } from 'react-bootstrap';
-import { Link } from "react-router-dom";
+import React, {useState } from "react";
+import { useLocation, Link } from "react-router-dom";
+import { Container, Row, Col, Card, Button } from "react-bootstrap";
+
+const ColorSwatch = ({ hex }) => (
+  <div style={{ textAlign: "center" }}>
+    <div
+      style={{
+        backgroundColor: hex,
+        width: "50px",
+        height: "50px",
+        borderRadius: "5px",
+        margin: "auto",
+        border: "1px solid #ccc",
+      }}
+    />
+    <small style={{ color: "#fff" }}>{hex}</small>
+  </div>
+);
+
 
 function ResultsPage() {
   const location = useLocation();
 
-  // Store extracted colors for top, bottom, shoes
-  const [colors, setColors] = useState({ top: "N/A", bottom: "N/A", shoes: "N/A" });
-
-  // Control whether the save preferences modal is visible
   const [showModal, setShowModal] = useState(false);
-
-  // Store selected preferences from modal dropdowns
   const [selectedGender, setSelectedGender] = useState("");
   const [selectedSeason, setSelectedSeason] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("");
-
-  // Store message to show after save attempt (success/failure)
   const [saveMessage, setSaveMessage] = useState("");
-   const [isSaving, setIsSaving] = useState(false); // <-- Track saving state
-  // Toggle modal visibility on/off
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleModalToggle = () => setShowModal(!showModal);
 
-  // Handle saving the outfit colors + preferences to backend
+  const {
+    extractedColors = {},
+    recommendedColors = {},
+    matchStatus = false,
+    topImage,
+    bottomImage,
+    shoesImage,
+  } = location.state || {};
+
   const handleSaveColors = async () => {
-    setIsSaving(true);  // Start spinner
-    setSaveMessage(""); // Clear any old messages
+    setIsSaving(true);
+    setSaveMessage("");
 
     const payload = {
-      top: colors.top,
-      bottom: colors.bottom,
-      shoes: colors.shoes,
+      topColor: extractedColors.top,
+      bottomColor: extractedColors.bottom,
+      shoesColor: extractedColors.shoes,
       gender: selectedGender,
       season: selectedSeason,
       style: selectedStyle,
+      topImage: topImage,        // Cloudinary URL of top
+      bottomImage: bottomImage,  // Cloudinary URL of bottom
+      shoesImage: shoesImage,     // Cloudinary URL of shoes
+      //recommendedTop: recommendedColors?.top || null,
+      //recommendedBottom: recommendedColors?.bottom || null,
+      //recommendedShoes: recommendedColors?.shoes || null,
+      
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/save-outfit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://localhost:5000/api/save-outfit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -52,149 +75,236 @@ function ResultsPage() {
         setSaveMessage("Failed to save outfit: " + (data.message || "Unknown error"));
       }
     } catch (error) {
-      console.error("Error saving colors:", error);
+      console.error("Error saving outfit:", error);
       setSaveMessage("Error saving outfit: " + error.message);
     }
 
-    setIsSaving(false);  // Stop spinner
-    // Close the modal after attempting to save
+    setIsSaving(false);
     handleModalToggle();
   };
 
-  // On mount / location change, load extracted colors passed via navigation state
-  useEffect(() => {
-    if (location.state && location.state.extractedColors) {
-      const { top, bottom, shoes } = location.state.extractedColors;
-      setColors({ top, bottom, shoes });
-    }
-  }, [location]);
+  if (!extractedColors || !extractedColors.top) {
+    return (
+      <Container className="text-center text-white mt-5">
+        <h3>No results to display.</h3>
+        <Link to="/upload">
+          <Button variant="warning" className="mt-3">
+            Go Back
+          </Button>
+        </Link>
+      </Container>
+    );
+  }
+
+  const items = [
+    {
+      label: "Top Image",
+      image: topImage,
+      color: extractedColors.top,
+      suggestion: recommendedColors?.top,
+    },
+    {
+      label: "Bottom Image",
+      image: bottomImage,
+      color: extractedColors.bottom,
+      suggestion: recommendedColors?.bottom,
+    },
+    {
+      label: "Shoes Image",
+      image: shoesImage,
+      color: extractedColors.shoes,
+      suggestion: recommendedColors?.shoes,
+    },
+  ];
 
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", height: "100vh", textAlign: "center",
-      color: "white", backgroundColor: "rgba(10, 10, 40, 0.9)", padding: "20px"
-    }}>
+    <div className="transparent-centered-container">
       <Row className="text-center pt-4">
         <nav>
           <div className="d-flex justify-content-center gap-3">
             <Link to="/about"><Button variant="primary">About</Button></Link>
+            <Link to="/home"><Button variant="primary">Home</Button></Link>
+            <Link to="/savedoutfit"><Button variant="primary">Saved Outfits</Button></Link>
             <Link to="/logout"><Button variant="primary">Logout</Button></Link>
           </div>
         </nav>
       </Row>
+      <Container
+        fluid
+        className="d-flex flex-column align-items-center justify-content-center text-white "
+        style={{
+          minHeight: "75vh",
+          backgroundColor: "transparent",
+          paddingTop: "3rem",
+        }}
+      >
+        <Card
+          className="text-center mb-4"
+          style={{
+            maxWidth: "400px",
+            width: "75%",
+            backgroundColor: "rgba(10, 10, 40, 0.9)",
+            background: "linear-gradient(135deg, rgba(5,3,50,0.8), rgba(151,120,56,0.85))",
+            color: "white",
+            borderRadius: "2rem",
+          }}
+        >
+          <Card.Body>
+            <h1
+              className="main-title text-center"
+              style={{ fontFamily: "'Dancing Script', cursive", fontSize: "3rem" }}
+            >
+              Results Page
+            </h1>
+            <p className="lead mb-0">Extracted colors and suggested adjustments</p>
+          </Card.Body>
+        </Card>
 
-      <div>
-        <h2 style={{ fontSize: "2rem", marginBottom: "20px" }}>Color Analysis Results</h2>
-        <div style={{ display: "flex", gap: "20px" }}>
-          {Object.entries(colors).map(([key, value]) => (
-            <div key={key} style={{
-              display: "flex", flexDirection: "column", alignItems: "center",
-              padding: "20px", backgroundColor: "rgba(10, 10, 40, 0.9)",
-              borderRadius: "10px", boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)",
-              minWidth: "150px"
-            }}>
-              <h3>{key.charAt(0).toUpperCase() + key.slice(1)} Color</h3>
-              <div style={{
-                width: "50px", height: "50px",
-                backgroundColor: value !== "N/A" ? value : "gray",
-                borderRadius: "5px", marginBottom: "10px",
-                border: "2px solid white"
-              }} />
-              <p>{value}</p>
-            </div>
+        <Row className="justify-content-center w-70 px-4">
+          {items.map(({ label, image, color, suggestion }) => (
+            <Col key={label} md={4} className="mb-4 d-flex justify-content-center">
+              <Card
+                style={{
+                  background: "linear-gradient(135deg, rgba(5,3,50,0.8), rgba(151,120,56,0.85))",
+                  color: "#fff",
+                  width: "100%",
+                  maxWidth: "275px",
+                }}
+              >
+                <Card.Body>
+                  <Card.Title className="text-center" style={{ textDecoration: "underline" }}>
+                    {label}
+                  </Card.Title>
+                  {image && (
+                    <Card className ='justify-content-center' style={{background: 'white'}}>
+                    <img
+                      src={typeof image === "string" ? image : URL.createObjectURL(image)}
+                      alt={`${label} Preview`}
+                      style={{
+                        width: 'auto',
+                        height: "180px",
+                        objectFit: "fill",
+                        borderRadius: "5px",
+                      }}
+                    />
+                    </Card>
+                  )}
+                  <div className="d-flex justify-content-center mt-3">
+                    <Card.Title className="text-center" style={{ textDecoration: "underline" }}>
+                      <p>Extracted Color</p>
+                      <ColorSwatch hex={color} />
+                    </Card.Title>
+                  </div>
+                  {!matchStatus && suggestion && suggestion !== color && (
+                    <div className="mt-3 text-center">
+                      <p className="mb-1">Suggested Color</p>
+                      <ColorSwatch hex={suggestion} />
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            </Col>
           ))}
-        </div>
+        </Row>
 
-        {/* Buttons for navigation and saving */}
-        <div className="mt-3">
-          <Link to="/savedoutfit"><Button variant="warning">Go to Saved Outfits</Button></Link>
-          <Button
-            variant="success"
-            onClick={handleModalToggle}
-            className="ms-2"
-            disabled={isSaving} // Disable while saving
+        <Row className="text-center mt-3">
+          <Col>
+            <Link to="/upload">
+              <Button variant="warning">Back to Upload Page</Button>
+            </Link>
+          </Col>
+          <Col>
+            <Button variant="warning" onClick={handleModalToggle}>
+              Save This Outfit
+            </Button>
+          </Col>
+        </Row>
+
+        {showModal && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              backgroundColor: "rgba(0, 0, 0, 0.6)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 1050,
+            }}
           >
-            {isSaving ? (
-              <>
-                <Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                /> Saving...
-              </>
-            ) : (
-              "Save Outfit"
-            )}
-          </Button>
-          <Link to="/upload"><Button variant="warning" className="ms-2">Back to Upload Page</Button></Link>
-        </div>
+            <Card
+              className="shadow p-4"
+              style={{
+                width: "100%",
+                maxWidth: "400px",
+                backgroundColor: "#ffffff",
+                borderRadius: "1rem",
+                zIndex: 1060,
+              }}
+            >
+              <h4 className="text-center mb-3 text-dark">Save Outfit Preferences</h4>
 
-        {saveMessage && (
-          <p style={{ marginTop: "10px", color: saveMessage.includes("successfully") ? "lightgreen" : "tomato" }}>
-            {saveMessage}
-          </p>
-        )}
-
-        {/* Modal for selecting gender, season, style before saving */}
-        <Modal show={showModal} onHide={handleModalToggle} centered>
-          <Modal.Header closeButton>
-            <Modal.Title>Save Your Outfit</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form>
-              <Form.Group className="mb-3">
-                <Form.Label>Gender</Form.Label>
-                <Form.Select value={selectedGender} onChange={e => setSelectedGender(e.target.value)}>
-                  <option value="">Select Gender</option>
+              <div className="mb-3">
+                <label className="text-dark"><strong>Gender</strong></label>
+                <select
+                  className="form-control"
+                  value={selectedGender}
+                  onChange={(e) => setSelectedGender(e.target.value)}
+                >
+                  <option value="">Select...</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Unisex">Unisex</option>
-                </Form.Select>
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Season</Form.Label>
-                <Form.Select value={selectedSeason} onChange={e => setSelectedSeason(e.target.value)}>
-                  <option value="">Select Season</option>
-                  <option value="Winter">Winter</option>
+                </select>
+              </div>
+
+              <div className="mb-3">
+                <label className="text-dark"><strong>Season</strong></label>
+                <select
+                  className="form-control"
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(e.target.value)}
+                >
+                  <option value="">Select...</option>
                   <option value="Spring">Spring</option>
                   <option value="Summer">Summer</option>
                   <option value="Fall">Fall</option>
-                </Form.Select>
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Style</Form.Label>
-                <Form.Select value={selectedStyle} onChange={e => setSelectedStyle(e.target.value)}>
-                  <option value="">Select Style</option>
-                  <option value="Casual">Casual</option>
-                  <option value="Formal">Formal</option>
-                  <option value="Sporty">Sporty</option>
-                </Form.Select>
-              </Form.Group>
-            </Form>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={handleModalToggle} disabled={isSaving}>Cancel</Button>
-            <Button variant="primary" onClick={handleSaveColors} disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    role="status"
-                    aria-hidden="true"
-                  /> Saving...
-                </>
-              ) : (
-                "Save"
+                  <option value="Winter">Winter</option>
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="text-dark"><strong>Style</strong></label>
+                <select
+                  className="form-control"
+                  value={selectedStyle}
+                  onChange={(e) => setSelectedStyle(e.target.value)}
+                >
+                  <option value="">Select...</option>
+                  <option value="casual">Casual</option>
+                  <option value="formal">Formal</option>
+                  <option value="sporty">Sporty</option>
+                  <option value="streetwear">Streetwear</option>
+                </select>
+              </div>
+
+              <div className="d-flex justify-content-between">
+                <Button variant="secondary" onClick={handleModalToggle}>Cancel</Button>
+                <Button variant="success" onClick={handleSaveColors} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save"}
+                </Button>
+              </div>
+
+              {saveMessage && (
+                <p className="text-center mt-3 text-success">{saveMessage}</p>
               )}
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      </div>
+            </Card>
+          </div>
+        )}
+      </Container>
     </div>
   );
 }

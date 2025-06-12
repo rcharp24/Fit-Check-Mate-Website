@@ -17,12 +17,13 @@ const NavBarComponent = ({ children }) => {
         src={NoSloganLogo}
         alt="FitCheckMate Logo"
         style={{
-          width: "120px",
-          height: "120px",
-          position: "absolute",
-          top: "20px",
-          left: "20px"
-        }}
+        width: "120px",
+        height: "120px",
+        position: "absolute",
+        top: "20px",
+        left: "20px",
+        zIndex: 1051, // Higher than modal backdrop (1050)
+      }}
       />
       
       {/* Page content */}

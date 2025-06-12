@@ -3,7 +3,7 @@ import { Container, Row, Col, Form, Button, Alert, Card } from 'react-bootstrap'
 import { auth } from './firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
-
+import "./App.css";
 const LoginPage = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -20,13 +20,13 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="transparent-centered-container">
-      <Container fluid className="vh-100 d-flex justify-content-center align-items-center checkered-background overflow-auto">
+    <div>
+      <Container fluid className="vh-100 d-flex justify-content-center align-items-center checkered-background transparent-centered-container" >
         <Row className="w-100 justify-content-center">
           <Col md={5} lg={4}>
-            <Card className="shadow-lg text-white" style={{ backgroundColor: 'rgba(10, 10, 40, 0.9)' }}>
+            <Card className="shadow-lg text-white" style={{ background: "linear-gradient(135deg, rgba(5,3,50,0.8), rgba(151,120,56,0.85))"}}>
               <div className="text-center">
-                <Card style={{ width: '40%', margin: '0 auto', color: 'black' }}>
+                <Card style={{ width: '40%', margin: '0 auto', color: 'navy' }}>
                   <h2 className="mb-1 p-1">Login</h2>
                 </Card>
               </div>
