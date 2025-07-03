@@ -119,6 +119,8 @@ router.post(
         },
         recommendedColors: recommended,
       });
+      module.exports = router;
+      
     } catch (err) {
       console.error("Analyze error:", err);
       res.status(500).json({ success: false, message: err.message });

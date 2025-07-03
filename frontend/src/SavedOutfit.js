@@ -67,7 +67,7 @@ function SavedOutfits() {
         <nav>
           <div className="d-flex justify-content-center gap-3">
             <Link to="/about"><Button variant="primary">About</Button></Link>
-            <Link to="/savedcolors"><Button variant="primary">Saved Colors</Button></Link>
+            <Link to="/home"><Button variant="primary">Home</Button></Link>
             <Link to="/logout"><Button variant="primary">Logout</Button></Link>
           </div>
         </nav>
@@ -89,6 +89,7 @@ function SavedOutfits() {
         }}
       >
         {outfits.map((outfit) => (
+          
           <Card
             key={outfit.id}
             style={{
@@ -121,7 +122,7 @@ function SavedOutfits() {
                   const colorKey = `${part}_color`; // DB might use lowercase field names
                   const imageKey = `${part}_image`;
                   
-
+                console.log(outfit); 
                   return (
                     <div key={part} style={{ textAlign: "center", maxWidth: "100px" }}>
                       <small style={{ display: "block", fontWeight: "bold" }}>

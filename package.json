@@ -14,11 +14,13 @@
     "jimp": "^1.6.0",
     "micro-cors": "^0.1.1",
     "multer": "^1.4.5-lts.2",
-    "multer-storage-cloudinary": "^4.0.0",
     "node-vibrant": "^4.0.3",
     "pg": "^8.16.0",
     "rgb-hex": "^4.1.0",
     "sharp": "^0.34.1",
     "sqlite": "^5.1.1"
+  },
+  "devDependencies": {
+    "electron": "^36.4.0"
   }
 }
