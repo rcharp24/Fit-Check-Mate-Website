@@ -13,7 +13,7 @@
   "dependencies": {
     "canvas": "^3.1.2",
     "cloudinary": "^1.37.0",
-    "colorthief-node": "^2.6.0",
+    "colorthief": "^2.6.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
