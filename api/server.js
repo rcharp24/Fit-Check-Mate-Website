@@ -1,37 +1,39 @@
 // server.js
 require('dotenv').config();
-const express                = require('express');
-const cors                   = require('cors');
-const fileUpload             = require('express-fileupload');
-const ColorThief             = require('colorthief');
-const path                   = require('path');
-const fs                     = require('fs');
-const multer                 = require('multer');
-const { Pool }               = require('pg');
-const { v2: cloudinary }     = require('cloudinary');
-const { CloudinaryStorage }  = require('multer-storage-cloudinary');
+const express = require('express');
+const cors = require('cors');
+const fileUpload = require('express-fileupload');
+const multer = require('multer');
+const { createCanvas, loadImage } = require('canvas');
+const ColorThief = require('colorthief-node');
+const path = require('path');
+const fs = require('fs');
+const { Pool } = require('pg');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 5000;
 
 /* ────── middleware ────── */
-app.use(cors({ origin: "*"}));
+app.use(cors({ origin: "*" }));
 app.use(express.json());
-app.use(fileUpload());
+app.use(fileUpload()); // Used for other endpoints
+const memoryUpload = multer({ storage: multer.memoryStorage() });
 
 /* ────── PostgreSQL ────── */
 const db = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: false }
-        : false
+    ? { rejectUnauthorized: false }
+    : false
 });
 
 /* ────── Cloudinary ────── */
 cloudinary.config({
-  cloud_name : process.env.CLOUDINARY_CLOUD_NAME,
-  api_key    : process.env.CLOUDINARY_API_KEY,
-  api_secret : process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const storage = new CloudinaryStorage({
@@ -45,56 +47,132 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage });
 
 /* ────── helpers ────── */
-const rgbToHex = rgb =>
-  '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
+const hexToRgb = hex => {
+  const bigint = parseInt(hex.replace("#", ""), 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: (bigint) & 255,
+  };
+};
 
-async function extractColor(file, label) {
-  const tmp = path.join(__dirname, `${label}-${Date.now()}.jpg`);
-  await file.mv(tmp);
-  try {
-    const rgb = await ColorThief.getColor(tmp);
-    return rgbToHex(rgb);
-  } finally {
-    fs.unlink(tmp, () => {});
-  }
+const rgbToHex = (r, g, b) =>
+  "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
+
+const getDistance = (c1, c2) =>
+  Math.sqrt(
+    Math.pow(c1.r - c2.r, 2) +
+    Math.pow(c1.g - c2.g, 2) +
+    Math.pow(c1.b - c2.b, 2)
+  );
+
+async function extractHexColor(buffer) {
+  const base64 = buffer.toString("base64");
+  const img = await loadImage(`data:image/png;base64,${base64}`);
+  const canvas = createCanvas(img.width, img.height);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+  const rgb = ColorThief.getColor(canvas);
+  return rgbToHex(rgb[0], rgb[1], rgb[2]);
 }
 
-/* ────── routes ────── */
+async function getAllPresetColors() {
+  const result = await db.query("SELECT hex FROM preset_colors");
+  return result.rows.map(row => row.hex.toUpperCase());
+}
 
-// POST /api/analyze  (fileUpload middleware)
-app.post('/api/analyze', async (req, res) => {
-  try {
-    const { topImage, bottomImage, shoesImage } = req.files || {};
-    if (!topImage || !bottomImage || !shoesImage) {
-      return res.status(400).json({ message: 'All 3 images must be uploaded.' });
+function findClosestMatch(hex, others, presets, threshold = 50) {
+  const rgb = hexToRgb(hex);
+  let bestHex = null;
+  let bestScore = Infinity;
+
+  for (const preset of presets) {
+    const presetRgb = hexToRgb(preset);
+    const distances = others.map(o => getDistance(presetRgb, hexToRgb(o)));
+    const worst = Math.max(...distances);
+
+    if (worst < bestScore && worst <= threshold) {
+      bestScore = worst;
+      bestHex = preset;
     }
-
-    const [top, bottom, shoes] = await Promise.all([
-      extractColor(topImage,   'top'),
-      extractColor(bottomImage,'bottom'),
-      extractColor(shoesImage, 'shoes')
-    ]);
-
-    res.json({ extractedColors: { top, bottom, shoes } });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to extract colors.' });
   }
-});
 
-// POST /api/upload-images  (multer‑cloudinary middleware)
+  return bestHex;
+}
+
+/* ────── Routes ────── */
+
+// POST /api/analyze (advanced color logic)
+app.post(
+  "/api/analyze",
+  memoryUpload.fields([
+    { name: "topImage", maxCount: 1 },
+    { name: "bottomImage", maxCount: 1 },
+    { name: "shoesImage", maxCount: 1 }
+  ]),
+  async (req, res) => {
+    try {
+      const top = await extractHexColor(req.files.topImage[0].buffer);
+      const bottom = await extractHexColor(req.files.bottomImage[0].buffer);
+      const shoes = await extractHexColor(req.files.shoesImage[0].buffer);
+
+      const rgbTop = hexToRgb(top);
+      const rgbBottom = hexToRgb(bottom);
+      const rgbShoes = hexToRgb(shoes);
+
+      const distTB = getDistance(rgbTop, rgbBottom);
+      const distTS = getDistance(rgbTop, rgbShoes);
+      const distBS = getDistance(rgbBottom, rgbShoes);
+
+      const threshold = 50;
+      const match = distTB <= threshold && distTS <= threshold && distBS <= threshold;
+
+      let recommended = { top: null, bottom: null, shoes: null };
+
+      if (!match) {
+        const presets = await getAllPresetColors();
+
+        const scores = [
+          { part: "top", value: top, others: [bottom, shoes] },
+          { part: "bottom", value: bottom, others: [top, shoes] },
+          { part: "shoes", value: shoes, others: [top, bottom] },
+        ];
+
+        for (const { part, value, others } of scores) {
+          const d1 = getDistance(hexToRgb(value), hexToRgb(others[0]));
+          const d2 = getDistance(hexToRgb(value), hexToRgb(others[1]));
+          if (d1 > threshold || d2 > threshold) {
+            recommended[part] = findClosestMatch(value, others, presets, threshold);
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        matchStatus: match,
+        extractedColors: { top, bottom, shoes },
+        recommendedColors: recommended,
+      });
+    } catch (err) {
+      console.error("Analyze error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+);
+
+// POST /api/upload-images
 app.post(
   '/api/upload-images',
   upload.fields([
-    { name: 'top',    maxCount: 1 },
+    { name: 'top', maxCount: 1 },
     { name: 'bottom', maxCount: 1 },
-    { name: 'shoes',  maxCount: 1 }
+    { name: 'shoes', maxCount: 1 }
   ]),
   (req, res) => {
     res.json({
-      top_image    : req.files?.top?.[0]?.path   || null,
-      bottom_image : req.files?.bottom?.[0]?.path|| null,
-      shoes_image  : req.files?.shoes?.[0]?.path || null
+      top_image: req.files?.top?.[0]?.path || null,
+      bottom_image: req.files?.bottom?.[0]?.path || null,
+      shoes_image: req.files?.shoes?.[0]?.path || null
     });
   }
 );
@@ -118,7 +196,7 @@ app.post('/api/save-outfit', async (req, res) => {
         top_image, bottom_image, shoes_image)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [topcolor, bottomcolor, shoescolor, gender, season, style,
-       topImage, bottomImage, shoesImage]
+        topImage, bottomImage, shoesImage]
     );
     res.json({ message: 'Outfit saved successfully' });
   } catch (err) {
@@ -149,7 +227,7 @@ app.delete('/api/delete-outfit/:id', async (req, res) => {
   }
 });
 
-// health‑check
+// Health check
 app.get('/', (_, res) => res.send('API is running ✅'));
 
 /* ────── boot ────── */
