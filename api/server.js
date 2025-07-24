@@ -4,7 +4,6 @@ const express = require('express');
 const cors = require('cors');
 const fileUpload = require('express-fileupload');
 const multer = require('multer');
-const { createCanvas, loadImage } = require('canvas');
 const ColorThief = require('colorthief');
 const path = require('path');
 const fs = require('fs');
@@ -67,14 +66,10 @@ const getDistance = (c1, c2) =>
   );
 
 async function extractHexColor(buffer) {
-  const base64 = buffer.toString("base64");
-  const img = await loadImage(`data:image/png;base64,${base64}`);
-  const canvas = createCanvas(img.width, img.height);
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0);
-  const rgb = ColorThief.getColor(canvas);
+  const rgb = await ColorThief.getColor(buffer);
   return rgbToHex(rgb[0], rgb[1], rgb[2]);
 }
+
 
 async function getAllPresetColors() {
   const result = await db.query("SELECT hex FROM preset_colors");
