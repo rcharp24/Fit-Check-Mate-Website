@@ -5,7 +5,7 @@ const cors = require('cors');
 const fileUpload = require('express-fileupload');
 const multer = require('multer');
 const { createCanvas, loadImage } = require('canvas');
-const ColorThief = require('colorthief');
+const ColorThief = require('colorthief-node');
 const path = require('path');
 const fs = require('fs');
 const { Pool } = require('pg');
@@ -162,20 +162,62 @@ app.post(
 
 // POST /api/upload-images
 app.post(
-  '/api/upload-images',
-  upload.fields([
-    { name: 'top', maxCount: 1 },
-    { name: 'bottom', maxCount: 1 },
-    { name: 'shoes', maxCount: 1 }
+  "/api/analyze",
+  memoryUpload.fields([
+    { name: "topImage", maxCount: 1 },
+    { name: "bottomImage", maxCount: 1 },
+    { name: "shoesImage", maxCount: 1 }
   ]),
-  (req, res) => {
-    res.json({
-      top_image: req.files?.top?.[0]?.path || null,
-      bottom_image: req.files?.bottom?.[0]?.path || null,
-      shoes_image: req.files?.shoes?.[0]?.path || null
-    });
+  async (req, res) => {
+    try {
+      const top = await extractHexColor(req.files.topImage[0].buffer);
+      const bottom = await extractHexColor(req.files.bottomImage[0].buffer);
+      const shoes = await extractHexColor(req.files.shoesImage[0].buffer);
+
+      const rgbTop = hexToRgb(top);
+      const rgbBottom = hexToRgb(bottom);
+      const rgbShoes = hexToRgb(shoes);
+
+      const distTB = getDistance(rgbTop, rgbBottom);
+      const distTS = getDistance(rgbTop, rgbShoes);
+      const distBS = getDistance(rgbBottom, rgbShoes);
+
+      const threshold = 50;
+      const match = distTB <= threshold && distTS <= threshold && distBS <= threshold;
+
+      let recommended = { top: null, bottom: null, shoes: null };
+
+      if (!match) {
+        const presets = await getAllPresetColors();
+
+        const scores = [
+          { part: "top", value: top, others: [bottom, shoes] },
+          { part: "bottom", value: bottom, others: [top, shoes] },
+          { part: "shoes", value: shoes, others: [top, bottom] },
+        ];
+
+        for (const { part, value, others } of scores) {
+          const d1 = getDistance(hexToRgb(value), hexToRgb(others[0]));
+          const d2 = getDistance(hexToRgb(value), hexToRgb(others[1]));
+          if (d1 > threshold || d2 > threshold) {
+            recommended[part] = findClosestMatch(value, others, presets, threshold);
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        matchStatus: match,
+        extractedColors: { top, bottom, shoes },
+        recommendedColors: recommended,
+      });
+    } catch (err) {
+      console.error("Analyze error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
   }
 );
+
 
 // POST /api/save-outfit
 app.post('/api/save-outfit', async (req, res) => {
