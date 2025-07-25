@@ -11,16 +11,21 @@
     "node": ">=20.x"
   },
   "dependencies": {
+    "axios": "^1.11.0",
     "cloudinary": "^1.37.0",
     "colorthief": "^2.6.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
     "express-fileupload": "^1.4.3",
-    "multer": "^2.0.1",
+    "form-data": "^4.0.4",
+    "fs": "^0.0.1-security",
+    "get-image-colors": "^4.0.1",
+    "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
     "node": "^20.19.4",
-    "pg": "^8.11.5"
+    "pg": "^8.16.3",
+    "tinycolor2": "^1.6.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

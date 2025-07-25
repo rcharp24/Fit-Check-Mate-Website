@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
-    "axios": "^1.9.0",
+    "axios": "^1.11.0",
     "canvas": "^2.11.2",
     "cloudinary": "^1.41.3",
     "color-thief-node": "^1.0.4",
@@ -11,6 +11,7 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-fileupload": "^1.5.1",
+    "form-data": "^4.0.4",
     "jimp": "^1.6.0",
     "micro-cors": "^0.1.1",
     "multer": "^1.4.5-lts.2",

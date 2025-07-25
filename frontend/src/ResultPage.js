@@ -1,23 +1,32 @@
-import React, {useState } from "react";
+import React, { useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 
-const ColorSwatch = ({ hex }) => (
-  <div style={{ textAlign: "center" }}>
-    <div
-      style={{
-        backgroundColor: hex,
-        width: "50px",
-        height: "50px",
-        borderRadius: "5px",
-        margin: "auto",
-        border: "1px solid #ccc",
-      }}
-    />
-    <small style={{ color: "#fff" }}>{hex}</small>
-  </div>
-);
+const ColorSwatch = ({ hex }) => {
+  const isLight = (hex) => {
+    const r = parseInt(hex.substr(1, 2), 16);
+    const g = parseInt(hex.substr(3, 2), 16);
+    const b = parseInt(hex.substr(5, 2), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 180;
+  };
 
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          backgroundColor: hex,
+          width: "50px",
+          height: "50px",
+          borderRadius: "5px",
+          margin: "auto",
+          border: "1px solid #ccc",
+        }}
+      />
+      <small style={{ color: isLight(hex) ? "#000" : "#fff" }}>{hex}</small>
+    </div>
+  );
+};
 
 function ResultsPage() {
   const location = useLocation();
@@ -32,7 +41,7 @@ function ResultsPage() {
   const handleModalToggle = () => setShowModal(!showModal);
 
   const {
-    extractedColors = {},
+    analyzedColors = {},
     recommendedColors = {},
     matchStatus = false,
     topImage,
@@ -40,24 +49,60 @@ function ResultsPage() {
     shoesImage,
   } = location.state || {};
 
+  if (!location.state) {
+    return (
+      <Container className="text-center text-white mt-5">
+        <h3>No results to display.</h3>
+        <Link to="/upload">
+          <Button variant="warning" className="mt-3">
+            Go Back
+          </Button>
+        </Link>
+      </Container>
+    );
+  }
+
+  const items = [
+    {
+      label: "Top Image",
+      image: topImage,
+      color: Array.isArray(analyzedColors.top) ? analyzedColors.top : [analyzedColors.top],
+      suggestion: recommendedColors?.top,
+    },
+    {
+      label: "Bottom Image",
+      image: bottomImage,
+      color: Array.isArray(analyzedColors.bottom) ? analyzedColors.bottom : [analyzedColors.bottom],
+      suggestion: recommendedColors?.bottom,
+    },
+    {
+      label: "Shoes Image",
+      image: shoesImage,
+      color: Array.isArray(analyzedColors.shoes) ? analyzedColors.shoes : [analyzedColors.shoes],
+      suggestion: recommendedColors?.shoes,
+    },
+  ];
+
   const handleSaveColors = async () => {
     setIsSaving(true);
     setSaveMessage("");
 
+    if (!selectedGender || !selectedSeason || !selectedStyle) {
+      setSaveMessage("Please complete all fields before saving.");
+      setIsSaving(false);
+      return;
+    }
+
     const payload = {
-      topColor: extractedColors.top,
-      bottomColor: extractedColors.bottom,
-      shoesColor: extractedColors.shoes,
+      topColor: analyzedColors.top,
+      bottomColor: analyzedColors.bottom,
+      shoesColor: analyzedColors.shoes,
       gender: selectedGender,
       season: selectedSeason,
       style: selectedStyle,
-      topImage: topImage,        // Cloudinary URL of top
-      bottomImage: bottomImage,  // Cloudinary URL of bottom
-      shoesImage: shoesImage,     // Cloudinary URL of shoes
-      //recommendedTop: recommendedColors?.top || null,
-      //recommendedBottom: recommendedColors?.bottom || null,
-      //recommendedShoes: recommendedColors?.shoes || null,
-      
+      topImage,
+      bottomImage,
+      shoesImage,
     };
 
     try {
@@ -83,55 +128,43 @@ function ResultsPage() {
     handleModalToggle();
   };
 
-  if (!extractedColors || !extractedColors.top) {
-    return (
-      <Container className="text-center text-white mt-5">
-        <h3>No results to display.</h3>
-        <Link to="/upload">
-          <Button variant="warning" className="mt-3">
-            Go Back
-          </Button>
-        </Link>
-      </Container>
-    );
-  }
+  const getMismatchMessage = () => {
+    if (matchStatus === true)
+      return "✅ Your outfit colors work great together!";
 
-  const items = [
-    {
-      label: "Top Image",
-      image: topImage,
-      color: extractedColors.top,
-      suggestion: recommendedColors?.top,
-    },
-    {
-      label: "Bottom Image",
-      image: bottomImage,
-      color: extractedColors.bottom,
-      suggestion: recommendedColors?.bottom,
-    },
-    {
-      label: "Shoes Image",
-      image: shoesImage,
-      color: extractedColors.shoes,
-      suggestion: recommendedColors?.shoes,
-    },
-  ];
+    let mismatched = [];
+    if (matchStatus?.top === false) mismatched.push("Top");
+    if (matchStatus?.bottom === false) mismatched.push("Bottom");
+    if (matchStatus?.shoes === false) mismatched.push("Shoes");
+
+    if (mismatched.length === 0) return "Some colors are slightly off. Here's how to improve.";
+
+    return `⚠️ These items didn't quite match: ${mismatched.join(", ")}`;
+  };
 
   return (
     <div className="transparent-centered-container">
       <Row className="text-center pt-4">
         <nav>
           <div className="d-flex justify-content-center gap-3">
-            <Link to="/about"><Button variant="primary">About</Button></Link>
-            <Link to="/home"><Button variant="primary">Home</Button></Link>
-            <Link to="/savedoutfit"><Button variant="primary">Saved Outfits</Button></Link>
-            <Link to="/logout"><Button variant="primary">Logout</Button></Link>
+            <Link to="/about">
+              <Button variant="primary">About</Button>
+            </Link>
+            <Link to="/home">
+              <Button variant="primary">Home</Button>
+            </Link>
+            <Link to="/savedoutfit">
+              <Button variant="primary">Saved Outfits</Button>
+            </Link>
+            <Link to="/logout">
+              <Button variant="primary">Logout</Button>
+            </Link>
           </div>
         </nav>
       </Row>
       <Container
         fluid
-        className="d-flex flex-column align-items-center justify-content-center text-white "
+        className="d-flex flex-column align-items-center justify-content-center text-white"
         style={{
           minHeight: "75vh",
           backgroundColor: "transparent",
@@ -143,8 +176,8 @@ function ResultsPage() {
           style={{
             maxWidth: "400px",
             width: "75%",
-            backgroundColor: "rgba(10, 10, 40, 0.9)",
-            background: "linear-gradient(135deg, rgba(5,3,50,0.8), rgba(151,120,56,0.85))",
+            background:
+              "linear-gradient(135deg, rgba(5,3,50,0.8), rgba(151,120,56,0.85))",
             color: "white",
             borderRadius: "2rem",
           }}
@@ -160,45 +193,62 @@ function ResultsPage() {
           </Card.Body>
         </Card>
 
+        {typeof matchStatus === "boolean" && (
+          <Card className="text-center my-3" style={{ backgroundColor: "#ffc107", color: "#000" }}>
+            <Card.Body>{getMismatchMessage()}</Card.Body>
+          </Card>
+        )}
+
         <Row className="justify-content-center w-70 px-4">
           {items.map(({ label, image, color, suggestion }) => (
             <Col key={label} md={4} className="mb-4 d-flex justify-content-center">
               <Card
                 style={{
-                  background: "linear-gradient(135deg, rgba(5,3,50,0.8), rgba(151,120,56,0.85))",
+                  background:
+                    "linear-gradient(135deg, rgba(5,3,50,0.8), rgba(151,120,56,0.85))",
                   color: "#fff",
                   width: "100%",
                   maxWidth: "275px",
                 }}
               >
                 <Card.Body>
-                  <Card.Title className="text-center" style={{ textDecoration: "underline" }}>
+                  <Card.Title className="text-center" style={{ textDecoration: "underline", textTransform: "capitalize" }}>
                     {label}
                   </Card.Title>
                   {image && (
-                    <Card className ='justify-content-center' style={{background: 'white'}}>
-                    <img
-                      src={typeof image === "string" ? image : URL.createObjectURL(image)}
-                      alt={`${label} Preview`}
-                      style={{
-                        width: 'auto',
-                        height: "180px",
-                        objectFit: "fill",
-                        borderRadius: "5px",
-                      }}
-                    />
+                    <Card className="justify-content-center" style={{ background: "white" }}>
+                      <img
+                        src={typeof image === "string" ? image : URL.createObjectURL(image)}
+                        alt={`${label} Preview`}
+                        style={{
+                          width: "auto",
+                          height: "180px",
+                          objectFit: "fill",
+                          borderRadius: "5px",
+                        }}
+                      />
                     </Card>
                   )}
-                  <div className="d-flex justify-content-center mt-3">
-                    <Card.Title className="text-center" style={{ textDecoration: "underline" }}>
-                      <p>Extracted Color</p>
-                      <ColorSwatch hex={color} />
-                    </Card.Title>
+
+                  <div className="d-flex flex-column align-items-center mt-3">
+                    <p style={{ textDecoration: "underline", fontWeight: "bold" }}>
+                      Extracted Colors
+                    </p>
+                    <div className="d-flex gap-2 flex-wrap justify-content-center">
+                      {color.map((hex, i) => (
+                        <ColorSwatch key={i} hex={hex} />
+                      ))}
+                    </div>
                   </div>
-                  {!matchStatus && suggestion && suggestion !== color && (
+
+                  {!matchStatus && suggestion && suggestion.length > 0 && (
                     <div className="mt-3 text-center">
-                      <p className="mb-1">Suggested Color</p>
-                      <ColorSwatch hex={suggestion} />
+                      <p className="mb-1">Suggested Colors</p>
+                      <div className="d-flex gap-2 justify-content-center flex-wrap">
+                        {suggestion.map((recHex, idx) => (
+                          <ColorSwatch key={idx} hex={recHex} />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </Card.Body>
@@ -248,7 +298,9 @@ function ResultsPage() {
               <h4 className="text-center mb-3 text-dark">Save Outfit Preferences</h4>
 
               <div className="mb-3">
-                <label className="text-dark"><strong>Gender</strong></label>
+                <label className="text-dark">
+                  <strong>Gender</strong>
+                </label>
                 <select
                   className="form-control"
                   value={selectedGender}
@@ -262,7 +314,9 @@ function ResultsPage() {
               </div>
 
               <div className="mb-3">
-                <label className="text-dark"><strong>Season</strong></label>
+                <label className="text-dark">
+                  <strong>Season</strong>
+                </label>
                 <select
                   className="form-control"
                   value={selectedSeason}
@@ -277,7 +331,9 @@ function ResultsPage() {
               </div>
 
               <div className="mb-4">
-                <label className="text-dark"><strong>Style</strong></label>
+                <label className="text-dark">
+                  <strong>Style</strong>
+                </label>
                 <select
                   className="form-control"
                   value={selectedStyle}
@@ -292,7 +348,9 @@ function ResultsPage() {
               </div>
 
               <div className="d-flex justify-content-between">
-                <Button variant="secondary" onClick={handleModalToggle}>Cancel</Button>
+                <Button variant="secondary" onClick={handleModalToggle}>
+                  Cancel
+                </Button>
                 <Button variant="success" onClick={handleSaveColors} disabled={isSaving}>
                   {isSaving ? "Saving..." : "Save"}
                 </Button>
